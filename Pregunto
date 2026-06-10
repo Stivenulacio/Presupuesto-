@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presupuesto Familiar</title>
+  <meta name="description" content="Control de gastos del hogar" />
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #f5f3ff; min-height: 100vh; }
+
+    .header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      padding: 24px 16px 20px; color: #fff;
+    }
+    .header-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+    .header-title { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+    .nav-mes { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .nav-mes button { background: rgba(255,255,255,.2); border: none; color: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 18px; }
+    .nav-mes span { flex: 1; text-align: center; font-weight: 700; font-size: 15px; text-transform: capitalize; }
+    .totales { display: flex; gap: 10px; }
+    .total-card { flex: 1; background: rgba(255,255,255,.15); border-radius: 12px; padding: 10px 12px; }
+    .total-card .lbl { font-size: 11px; opacity: .8; }
+    .total-card .val { font-size: 18px; font-weight: 800; }
+
+    .miembros { display: flex; gap: 10px; padding: 14px 16px 0; max-width: 480px; margin: 0 auto; }
+    .miembro-card { flex: 1; background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; }
+    .miembro-card .nombre { font-size: 12px; color: #6b7280; }
+    .miembro-card .saldo { font-size: 18px; font-weight: 800; }
+    .miembro-card .de { font-size: 11px; color: #9ca3af; margin-bottom: 6px; }
+
+    .barra-bg { background: #f3f4f6; border-radius: 6px; height: 8px; }
+    .barra-fill { border-radius: 6px; height: 8px; transition: width .5s; }
+
+    .tabs { max-width: 480px; margin: 14px auto 0; padding: 0 16px; }
+    .tabs-inner { display: flex; background: #e5e7eb; border-radius: 10px; padding: 3px; gap: 2px; }
+    .tab-btn { flex: 1; padding: 8px 2px; border-radius: 8px; border: none; cursor: pointer; font-size: 11px; transition: all .2s; }
+    .tab-btn.active { background: #fff; font-weight: 700; color: #4f46e5; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    .tab-btn.inactive { background: transparent; font-weight: 500; color: #6b7280; }
+
+    .content { max-width: 480px; margin: 0 auto; padding: 16px 16px 80px; }
+
+    .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+    .card-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; color: #1e1b4b; }
+
+    .form-box { border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+    .form-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+    .form-box input, .form-box select {
+      width: 100%; padding: 9px 12px; border-radius: 8px;
+      border: 1.5px solid #e5e7eb; font-size: 14px; outline: none;
+      background: #fff; margin-bottom: 8px;
+    }
+    .form-row { display: flex; gap: 8px; }
+    .form-row input, .form-row select { margin-bottom: 0; }
+    .btn-agregar { width: 100%; padding: 10px; border-radius: 8px; border: none; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 8px; }
+
+    .gasto-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #fff; border-radius: 10px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.07); gap: 8px; }
+    .gasto-desc { font-weight: 600; font-size: 14px; color: #1e1b4b; }
+    .gasto-meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .gasto-monto { font-weight: 700; font-size: 15px; color: #1e1b4b; white-space: nowrap; }
+    .btn-del { background: none; border: none; cursor: pointer; color: #ef4444; font-size: 16px; }
+
+    .resumen-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .resumen-mini { flex: 1; border-radius: 8px; padding: 8px 10px; }
+    .resumen-mini .lbl { font-size: 11px; color: #6b7280; }
+    .resumen-mini .val { font-weight: 700; font-size: 15px; }
+
+    .pago-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; border: 1.5px solid #e5e7eb; }
+    .pago-row.pasado { border-color: rgba(99,102,241,.3); }
+    .pago-label { font-weight: 600; font-size: 14px; }
+    .pago-fecha { font-size: 12px; color: #6b7280; }
+    .pago-right { display: flex; align-items: center; gap: 8px; }
+    .pago-monto { font-weight: 800; font-size: 16px; }
+
+    .empty { color: #9ca3af; text-align: center; padding: 28px 0; font-size: 14px; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    .modal { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 340px; }
+    .modal h3 { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
+    .modal input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1.5px solid #e5e7eb; font-size: 14px; outline: none; margin-bottom: 12px; }
+    .modal-btns { display: flex; gap: 8px; }
+    .modal-btns button { flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-cancel { border: 1.5px solid #e5e7eb; background: #fff; }
+    .btn-save { border: none; background: #4f46e5; color: #fff; font-weight: 700; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const CATEGORIAS = ["🥩 Carnes","🥦 Verduras","🍎 Frutas","🥛 Lácteos","🍞 Panadería","🧃 Bebidas","🧴 Limpieza","🛒 Otros"];
+const COLOR = { Stiven: "#4f46e5", Esposa: "#db2777" };
+const BG = { Stiven: "#eef2ff", Esposa: "#fdf2f8" };
+
+const INGRESOS_BASE = {
+  Stiven: [
+    { dia: "fin_mes_ant", label: "Fin mes anterior", monto: 50 },
+    { dia: 10, label: "Día 10", monto: 100 },
+    { dia: "fin_mes", label: "Fin de mes", monto: 50 },
+  ],
+  Esposa: [
+    { dia: 1, label: "Día 1", monto: 50 },
+    { dia: 15, label: "Día 15", monto: 50 },
+    { dia: "fin_mes", label: "Fin de mes", monto: 50 },
+  ],
+};
+
+function diasEnMes(y, m) { return new Date(y, m + 1, 0).getDate(); }
+
+function calcIngresos(miembro, year, month) {
+  const last = diasEnMes(year, month);
+  return INGRESOS_BASE[miembro].map(ing => {
+    let fecha;
+    if (ing.dia === "fin_mes") fecha = new Date(year, month, last);
+    else if (ing.dia === "fin_mes_ant") {
+      const pm = month === 0 ? 11 : month - 1;
+      const py = month === 0 ? year - 1 : year;
+      fecha = new Date(py, pm, diasEnMes(py, pm));
+    } else fecha = new Date(year, month, ing.dia);
+    return { ...ing, fecha, fechaStr: fecha.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) };
+  });
+}
+
+function fmt(v) { return "$" + Number(v || 0).toLocaleString("es-CO"); }
+
+let state = {
+  mes: new Date().getMonth(),
+  anio: new Date().getFullYear(),
+  tab: "resumen",
+  gastos: JSON.parse(localStorage.getItem("gastos_v2") || "[]"),
+  modal: null,
+  limiteTemp: ""
+};
+
+function setState(updates) {
+  state = { ...state, ...updates };
+  if (updates.gastos !== undefined) localStorage.setItem("gastos_v2", JSON.stringify(state.gastos));
+  render();
+}
+
+function mesKey() { return `${state.anio}-${state.mes}`; }
+function gastosMes() { return state.gastos.filter(g => g.mesKey === mesKey()); }
+function totalIngresado(m) { return calcIngresos(m, state.anio, state.mes).reduce((s, i) => s + i.monto, 0); }
+function totalGastado(m) { return gastosMes().filter(g => g.miembro === m).reduce((s, g) => s + g.monto, 0); }
+function saldo(m) { return totalIngresado(m) - totalGastado(m); }
+
+function cambiarMes(dir) {
+  let nm = state.mes + dir, ny = state.anio;
+  if (nm < 0) { nm = 11; ny--; }
+  if (nm > 11) { nm = 0; ny++; }
+  setState({ mes: nm, anio: ny });
+}
+
+function agregarGasto(miembro) {
+  const desc = document.getElementById("inp-desc-" + miembro).value.trim();
+  const monto = Number(document.getElementById("inp-monto-" + miembro).value);
+  const cat = document.getElementById("inp-cat-" + miembro).value;
+  if (!desc || !monto || isNaN(monto)) return;
+  const nuevo = { id: Date.now(), miembro, descripcion: desc, monto, categoria: cat, mesKey: mesKey(), fecha: new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "short" }) };
+  setState({ gastos: [nuevo, ...state.gastos] });
+}
+
+function eliminarGasto(id) {
+  if (confirm("¿Eliminar este gasto?")) setState({ gastos: state.gastos.filter(g => g.id !== id) });
+}
+
+function barraHTML(disponible, total, color) {
+  const pct = total > 0 ? Math.max(0, Math.min((disponible / total) * 100, 100)) : 0;
+  const bg = pct < 20 ? "#ef4444" : pct < 50 ? "#f59e0b" : color;
+  return `<div class="barra-bg"><div class="barra-fill" style="background:${bg};width:${pct}%"></div></div>`;
+}
+
+function gastoRowHTML(g) {
+  return `<div class="gasto-row">
+    <div style="flex:1">
+      <div class="gasto-desc">${g.descripcion}</div>
+      <div class="gasto-meta">${g.categoria} · ${g.fecha}</div>
+    </div>
+    <div class="gasto-monto">${fmt(g.monto)}</div>
+    <button class="btn-del" onclick="eliminarGasto(${g.id})">✕</button>
+  </div>`;
+}
+
+function formHTML(m) {
+  const cats = CATEGORIAS.map(c => `<option>${c}</option>`).join("");
+  return `<div class="form-box" style="background:${BG[m]};border:1.5px solid ${COLOR[m]}22">
+    <div class="form-title" style="color:${COLOR[m]}">➕ Registrar gasto</div>
+    <input id="inp-desc-${m}" placeholder="¿Qué compraste?" onkeydown="if(event.key==='Enter')agregarGasto('${m}')" />
+    <div class="form-row">
+      <input id="inp-monto-${m}" type="number" placeholder="Monto ($)" style="flex:1" onkeydown="if(event.key==='Enter')agregarGasto('${m}')" />
+      <select id="inp-cat-${m}" style="flex:2">${cats}</select>
+    </div>
+    <button class="btn-agregar" style="background:${COLOR[m]}" onclick="agregarGasto('${m}')">Agregar gasto</button>
+  </div>`;
+}
+
+function renderResumen() {
+  const hoy = new Date();
+  const totalIng = totalIngresado("Stiven") + totalIngresado("Esposa");
+  const totalGas = gastosMes().reduce((s, g) => s + g.monto, 0);
+  const sal = totalIng - totalGas;
+  let html = "";
+  ["Stiven", "Esposa"].forEach(m => {
+    const ing = totalIngresado(m), gas = totalGastado(m), s = saldo(m);
+    const pct = ing > 0 ? Math.min((gas / ing) * 100, 100) : 0;
+    html += `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;color:${COLOR[m]};font-size:15px">${m}</div>
+        <div style="font-size:13px;color:${s >= 0 ? "#059669" : "#ef4444"};font-weight:700">${s >= 0 ? "✅" : "⚠️"} Saldo: ${fmt(s)}</div>
+      </div>
+      <div class="resumen-row">
+        <div class="resumen-mini" style="background:${BG[m]}"><div class="lbl">Ingresos</div><div class="val">${fmt(ing)}</div></div>
+        <div class="resumen-mini" style="background:#fef2f2"><div class="lbl">Gastado</div><div class="val">${fmt(gas)}</div></div>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:4px">Uso: ${Math.round(pct)}%</div>
+      ${barraHTML(ing - gas, ing, COLOR[m])}
+    </div>`;
+  });
+  const ultimos = gastosMes().slice(0, 5);
+  html += `<div class="card"><div class="card-title">Últimos gastos</div>
+    ${ultimos.length ? ultimos.map(gastoRowHTML).join("") : '<div class="empty">Sin gastos este mes 😊</div>'}
+  </div>`;
+  return html;
+}
+
+function renderMiembro(m) {
+  const lista = gastosMes().filter(g => g.miembro === m);
+  return formHTML(m) + `<div style="font-weight:700;color:#374151;margin-bottom:10px;font-size:15px">Gastos de ${m}</div>
+    ${lista.length ? lista.map(gastoRowHTML).join("") : '<div class="empty">Sin gastos aún este mes</div>'}`;
+}
+
+function renderIngresos() {
+  const hoy = new Date();
+  let html = "";
+  ["Stiven", "Esposa"].forEach(m => {
+    const ings = calcIngresos(m, state.anio, state.mes);
+    const total = ings.reduce((s, i) => s + i.monto, 0);
+    html += `<div class="card">
+      <div class="card-title" style="color:${COLOR[m]}">💰 ${m}</div>
+      ${ings.map(ing => {
+        const pasado = ing.fecha <= hoy;
+        return `<div class="pago-row ${pasado ? "pasado" : ""}" style="${pasado ? `background:${BG[m]}` : ""}">
+          <div><div class="pago-label">${ing.label}</div><div class="pago-fecha">${ing.fechaStr}</div></div>
+          <div class="pago-right">
+            <div class="pago-monto" style="color:${COLOR[m]}">${fmt(ing.monto)}</div>
+            <span style="font-size:16px">${pasado ? "✅" : "⏳"}</span>
+          </div>
+        </div>`;
+      }).join("")}
+      <div style="text-align:right;font-weight:700;color:${COLOR[m]};font-size:14px;margin-top:4px">Total: ${fmt(total)}</div>
+    </div>`;
+  });
+  return html;
+}
+
+function render() {
+  const hoy = new Date();
+  const nombreMes = new Date(state.anio, state.mes, 1).toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+  const totalIng = totalIngresado("Stiven") + totalIngresado("Esposa");
+  const totalGas = gastosMes().reduce((s, g) => s + g.monto, 0);
+  const sal = totalIng - totalGas;
+
+  const tabs = [["resumen","📊 Resumen"],["Stiven","👤 Stiven"],["Esposa","👩 Esposa"],["ingresos","💰 Pagos"]];
+
+  let content = "";
+  if (state.tab === "resumen") content = renderResumen();
+  else if (state.tab === "Stiven" || state.tab === "Esposa") content = renderMiembro(state.tab);
+  else if (state.tab === "ingresos") content = renderIngresos();
+
+  document.getElementById("app").innerHTML = `
+    <div class="header">
+      <div style="max-width:480px;margin:0 auto">
+        <div class="header-label">Presupuesto Familiar</div>
+        <div class="header-title">🛒 Alimentos</div>
+        <div class="nav-mes">
+          <button onclick="cambiarMes(-1)">‹</button>
+          <span>${nombreMes}</span>
+          <button onclick="cambiarMes(1)">›</button>
+        </div>
+        <div class="totales">
+          <div class="total-card"><div class="lbl">Ingresos</div><div class="val">${fmt(totalIng)}</div></div>
+          <div class="total-card"><div class="lbl">Gastos</div><div class="val">${fmt(totalGas)}</div></div>
+          <div class="total-card" style="background:${sal >= 0 ? "rgba(167,243,208,.3)" : "rgba(254,202,202,.3)"}">
+            <div class="lbl">Saldo</div>
+            <div class="val" style="color:${sal >= 0 ? "#a7f3d0" : "#fecaca"}">${fmt(sal)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="miembros">
+      ${["Stiven","Esposa"].map(m => {
+        const ing = totalIngresado(m), s = saldo(m);
+        return `<div class="miembro-card" style="border-top:4px solid ${COLOR[m]};outline:${state.tab===m?`2px solid ${COLOR[m]}`:'none'}" onclick="setState({tab:'${m}'})">
+          <div class="nombre">${m}</div>
+          <div class="saldo" style="color:${COLOR[m]}">${fmt(s)}</div>
+          <div class="de">de ${fmt(ing)}</div>
+          ${barraHTML(s, ing, COLOR[m])}
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div class="tabs">
+      <div class="tabs-inner">
+        ${tabs.map(([k,l]) => `<button class="tab-btn ${state.tab===k?'active':'inactive'}" onclick="setState({tab:'${k}'})">${l}</button>`).join("")}
+      </div>
+    </div>
+
+    <div class="content">${content}</div>
+  `;
+}
+
+render();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
